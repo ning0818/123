@@ -1,0 +1,152 @@
+{extend name="../../base/view/common/base" /}
+<!-- 主体 -->
+{block name="body"}
+<form class="layui-form p-4">
+	<h3 class="pb-3">添加报销申请</h3>
+	<table class="layui-table layui-table-form">
+		<tr>
+			<td class="layui-td-gray">报销员工</td>
+			<td>{$user.name}</td>
+			<td class="layui-td-gray">报销部门</td>
+			<td colspan="3">{$user.department}</td>
+		</tr>
+		<tr>
+			<td class="layui-td-gray">凭证编号<font>*</font></td>
+			<td><input type="text" name="code" autocomplete="off" lay-verify="required" placeholder="请输入报销凭证编号" lay-reqText="请填写报销凭证编号" class="layui-input" value=""></td>
+			<td class="layui-td-gray">单据日期<font>*</font></td>
+			<td><input type="text" class="layui-input tool-time" name="expense_time" lay-verify="required" placeholder="请选择原始单据日期" lay-reqText="请选择原始单据日期" readonly value="">	
+			</td>
+			<td class="layui-td-gray">入账月份<font>*</font></td>
+			<td><input type="text" class="layui-input tool-time" data-type="month" name="income_month" lay-verify="required" placeholder="请选择入账月份" lay-reqText="请选择入账月份" readonly value=""></td>
+		</tr>
+		<tr>
+			<td class="layui-td-gray">关联项目</td>
+			<td colspan="5">
+				<input type="text" class="layui-input picker-oa" data-types="project" name="ptname" placeholder="请选择需要关联的项目" readonly value="">		
+				<input type="hidden" class="layui-input" name="project_id" value="0">		
+			</td>
+		</tr>
+		<tr>
+			<td class="layui-td-gray">报销选项<font>*</font></td>
+			<td colspan="5">				
+				<table id="interfix" class="layui-table layui-table-min" style="margin:0;">
+					<tr>
+						<th width="100">报销金额</th>
+						<th width="120">报销项目</th>
+						<th>备注信息</th>
+						<th width="60">操作</th>
+					</tr>
+					<tr class="more_interfix">
+						<td><input type="text" name="amount[]" value="" class="layui-input" lay-verify="required|number" lay-reqText="请完善报销金额"></td>
+						<td style="text-align:left">
+							<select name="cate_id[]" lay-verify="required" lay-reqText="请选择报销项目">
+								<option value="">请选择</option>
+								{volist name="$expense_cate" id="vo"}
+								  <option value="{$vo.id}">{$vo.title}</option>
+								{/volist}
+							</select>
+						</td>
+						<td><input type="text" name="remarks[]" class="layui-input" value=""><input type="hidden" name="expense_id[]" class="layui-input" value="0"></td>
+						<td><a class="layui-btn layui-btn-danger layui-btn-xs" data-id="0" lay-event="del">删除</a></td>
+					</tr>
+				</table>
+				<div class="pt-2">
+					<button class="layui-btn layui-btn-sm" type="button" id="addInterfix">+ 报销选项</button>
+				</div>
+			</td>
+		</tr>
+		<tr>
+			<td class="layui-td-gray">
+				<div class="layui-input-inline">附件</div>
+				<div class="layui-input-inline"><button type="button" class="layui-btn layui-btn-xs" id="uploadBtn"><i class="layui-icon"></i></button></div>
+			</td>
+			<td colspan="5" style="line-height:inherit">
+				<div class="layui-row" id="uploadBox">
+					<input type="hidden" data-type="file" name="file_ids" value="">
+				</div>
+			</td>
+		</tr>
+	</table>
+	<div id="checkBox" data-status="0" data-id="0" data-checkflowid="0" class="pt-3"></div>
+	<div class="pt-4">
+		<button class="layui-btn layui-btn-normal" lay-submit="" lay-filter="webform">保存并提交审核</button>
+		<button type="reset" class="layui-btn layui-btn-primary">重置</button>
+	</div>
+</form>
+<div id="selectTem" style="display:none;">
+	<select name="cate_id[]" lay-verify="required" lay-reqText="请选择报销项目">
+		<option value="">请选择</option>
+		{volist name="$expense_cate" id="vo"}
+		  <option value="{$vo.id}">{$vo.title}</option>
+		{/volist}
+	</select>
+</div>
+{/block}
+<!-- /主体 -->
+
+<!-- 脚本 -->
+{block name="script"}
+<script>
+	const moduleInit = ['tool','oaPicker','uploadPlus','oaCheck'];
+	function gouguInit() {
+		var form = layui.form,tool=layui.tool,table=layui.table,uploadPlus = layui.uploadPlus,oaCheck = layui.oaCheck;
+		//相关附件上传
+		var attachment = new uploadPlus();
+		//审批相关
+		oaCheck.init({
+			check_name:'expense',
+			check_btn:0
+		});
+		//添加报销信息表格
+		$('#addInterfix').on('click',function(){
+			var html = '';
+			var selectTem=$('#selectTem').html();
+			html += '<tr class="more_interfix">\
+							<td><input type="text" name="amount[]" class="layui-input" lay-verify="required|number" lay-reqText="请完善报销金额"></td>\
+							<td style="text-align:left">'+selectTem+'</td>\
+							<td><input type="text" name="remarks[]" class="layui-input"><input type="hidden" name="expense_id[]" class="layui-input" value="0"></td>\
+							<td><a class="layui-btn layui-btn-danger layui-btn-xs" data-id="0" lay-event="del">删除</a></td>\
+						</tr>';
+			$("#interfix").append(html).find('.tr-none').remove();
+			form.render();
+		});
+
+		$('#interfix').on('click', '[lay-event="del"]', function() {
+			if($('.more_interfix').length<2){
+				layer.msg('至少保留一个报销选项');
+				return false;
+			}
+			$(this).parents(".more_interfix").remove();
+		});
+
+		//监听提交
+		form.on('submit(webform)', function(data){
+		  	var interfix = $('.more_interfix');
+			if(interfix.length <1 ){ 
+				layer.msg('至少要保留一个报销选项');
+				return false;
+			}
+			tool.ask('审核期间不能编辑修改，确定报销数据无误？', function(index) {
+					let callback = function (e) {
+						layer.msg(e.msg);
+						if (e.code == 0) {
+							let checkCallback = function (e) {
+								layer.msg(e.msg);
+								if (e.code == 0) {
+									tool.sideClose(1000);				
+								}
+							}
+							data.field.check_name = 'expense';
+							data.field.action_id = e.data.return_id;
+							oaCheck.submit(data.field,checkCallback);
+						}
+					}
+					tool.post("/finance/expense/add", data.field, callback);
+					layer.close(index);
+				});
+			return false;
+		});
+	}		
+	</script>
+{/block}
+<!-- /脚本 -->
